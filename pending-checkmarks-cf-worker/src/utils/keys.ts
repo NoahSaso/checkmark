@@ -1,3 +1,4 @@
+import CryptoJS from 'crypto-js'
 import { Env } from '../types'
 
 // The key that maps from a pending session ID to the wallet address that
@@ -73,3 +74,6 @@ export const clearPendingSession = async (
   await SESSIONS.delete(sessionKey)
   await SESSIONS.delete(walletKey)
 }
+
+export const hashSessionId = (sessionId: string): string =>
+  CryptoJS.SHA512(sessionId).toString(CryptoJS.enc.Hex)

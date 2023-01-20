@@ -46,6 +46,7 @@ kv-namespaces = [
 ```toml
 [vars]
 CHECKMARK_CONTRACT_ADDRESS = "<VALUE>"
+PAYMENT_CONTRACT_ADDRESS = "<VALUE>"
 ```
 
 5. Configure secrets:

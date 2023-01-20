@@ -9,6 +9,7 @@ import {
   storePendingSession,
 } from '../utils'
 import { sessionHasCheckmark, walletHasCheckmark } from '../utils/checkmark'
+import { sessionIsPaidFor } from '../utils/payment'
 
 interface CreateSessionRequest {
   sessionId: string
@@ -26,6 +27,11 @@ export const createSession = async (
   // Ensure session has not already been seen.
   if (await env.SESSIONS.get(seenSessionIdKey(sessionId))) {
     return respondError(409, 'Verification already used.')
+  }
+
+  // Ensure session has been paid for.
+  if (!(await sessionIsPaidFor(env, sessionId))) {
+    return respondError(402, "Verification hasn't been paid for.")
   }
 
   // Mark session used. Even if one of the below checks fails and the pending

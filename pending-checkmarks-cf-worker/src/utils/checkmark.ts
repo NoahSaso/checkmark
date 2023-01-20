@@ -1,9 +1,9 @@
 import { Env } from '../types'
 import { getCosmWasmClient, getSigningCosmWasmClient } from './chain'
-import CryptoJS from 'crypto-js'
 import {
   clearPendingSession,
   currentSessionForInitialSessionIdKey,
+  hashSessionId,
   walletForPendingSessionIdKey,
 } from './keys'
 
@@ -26,12 +26,24 @@ export const sessionHasCheckmark = async (
   sessionId: string
 ): Promise<boolean> => {
   const client = await getCosmWasmClient()
-  const sha512SessionId = CryptoJS.SHA512(sessionId).toString(CryptoJS.enc.Hex)
   return (
     await client.queryContractSmart(CHECKMARK_CONTRACT_ADDRESS, {
-      assigned: { session: sha512SessionId },
+      assigned: { session: hashSessionId(sessionId) },
     })
   ).assigned
+}
+
+// If a session has been banned from receiving checkmarks.
+export const sessionIsBanned = async (
+  { CHECKMARK_CONTRACT_ADDRESS }: Env,
+  sessionId: string
+): Promise<boolean> => {
+  const client = await getCosmWasmClient()
+  return (
+    await client.queryContractSmart(CHECKMARK_CONTRACT_ADDRESS, {
+      banned: { session: hashSessionId(sessionId) },
+    })
+  ).banned
 }
 
 // This function attempts to assign a checkmark for the pending session ID given
@@ -64,6 +76,12 @@ export const attemptToAssignCheckmark = async (
     throw new Error('No current session found.')
   }
 
+  // Check if checkmark has been banned from beign assigned for this session.
+  const checkmarkBanned = await sessionIsBanned(env, initialSessionId)
+  if (checkmarkBanned) {
+    throw new Error('Checkmark banned for this identity.')
+  }
+
   // Check if checkmark assigned for current session. If so, the user tried
   // to verify while already having a checkmark, which the UI should
   // prevent.
@@ -90,16 +108,13 @@ export const attemptToAssignCheckmark = async (
   const { client, walletAddress } = await getSigningCosmWasmClient(env)
 
   // Try to assign a checkmark. It should succeed given all the checks above.
-  // Use the sha-512 hash of the latest session ID.
-  const sha512PendingSessionId = CryptoJS.SHA512(pendingSessionId).toString(
-    CryptoJS.enc.Hex
-  )
+  // Use the hash of the latest session ID.
   await client.execute(
     walletAddress,
     env.CHECKMARK_CONTRACT_ADDRESS,
     {
       assign: {
-        session: sha512PendingSessionId,
+        session: hashSessionId(pendingSessionId),
         wallet: destinationWalletAddress,
       },
     },

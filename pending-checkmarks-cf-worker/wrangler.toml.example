@@ -10,6 +10,7 @@ kv_namespaces = [
 
 [vars]
 CHECKMARK_CONTRACT_ADDRESS = "<VALUE>"
+PAYMENT_CONTRACT_ADDRESS = "<VALUE>"
 
 # Secrets:
 # - WALLET_MNEMONIC

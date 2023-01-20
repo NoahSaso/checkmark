@@ -6,6 +6,7 @@ export interface Env {
 
   // Environment variables.
   CHECKMARK_CONTRACT_ADDRESS: string
+  PAYMENT_CONTRACT_ADDRESS: string
   // Secrets.
   WALLET_MNEMONIC: string
   SYNAPS_CLIENT_ID: string
