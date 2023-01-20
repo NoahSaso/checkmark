@@ -1,0 +1,412 @@
+{
+  "contract_name": "cw-checkmark",
+  "contract_version": "0.1.0",
+  "idl_version": "1.0.0",
+  "instantiate": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "InstantiateMsg",
+    "type": "object",
+    "required": [
+      "assigner"
+    ],
+    "properties": {
+      "assigner": {
+        "description": "The assigner is the only one who can assign checkmarks.",
+        "type": "string"
+      }
+    },
+    "additionalProperties": false
+  },
+  "execute": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "ExecuteMsg",
+    "oneOf": [
+      {
+        "description": "Assign a checmark; this can only be called by the admin or assigner.",
+        "type": "object",
+        "required": [
+          "assign"
+        ],
+        "properties": {
+          "assign": {
+            "type": "object",
+            "required": [
+              "address",
+              "checkmark_id"
+            ],
+            "properties": {
+              "address": {
+                "type": "string"
+              },
+              "checkmark_id": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "description": "Deletes the checkmark assigned to the sender, if any. Errors if no checkmark assigned.",
+        "type": "object",
+        "required": [
+          "delete"
+        ],
+        "properties": {
+          "delete": {
+            "type": "object",
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "description": "Deletes the checkmark. Only the admin can call this.",
+        "type": "object",
+        "required": [
+          "revoke_checkmark"
+        ],
+        "properties": {
+          "revoke_checkmark": {
+            "type": "object",
+            "required": [
+              "checkmark_id"
+            ],
+            "properties": {
+              "checkmark_id": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "description": "Deletes the checkmark assigned to the address, if any. Only the admin can call this.",
+        "type": "object",
+        "required": [
+          "revoke_address"
+        ],
+        "properties": {
+          "revoke_address": {
+            "type": "object",
+            "required": [
+              "address"
+            ],
+            "properties": {
+              "address": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "description": "Update whether a checkmark ID is banned.",
+        "type": "object",
+        "required": [
+          "update_checkmark_ban"
+        ],
+        "properties": {
+          "update_checkmark_ban": {
+            "type": "object",
+            "required": [
+              "ban",
+              "checkmark_id"
+            ],
+            "properties": {
+              "ban": {
+                "type": "boolean"
+              },
+              "checkmark_id": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "description": "Update assigner. Only the admin can call this.",
+        "type": "object",
+        "required": [
+          "update_assigner"
+        ],
+        "properties": {
+          "update_assigner": {
+            "type": "object",
+            "required": [
+              "assigner"
+            ],
+            "properties": {
+              "assigner": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "description": "Update admin. Only the admin can call this.",
+        "type": "object",
+        "required": [
+          "update_admin"
+        ],
+        "properties": {
+          "update_admin": {
+            "type": "object",
+            "required": [
+              "admin"
+            ],
+            "properties": {
+              "admin": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    ]
+  },
+  "query": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "QueryMsg",
+    "oneOf": [
+      {
+        "description": "Returns the checkmark ID assigned to the address, if any.",
+        "type": "object",
+        "required": [
+          "get_checkmark"
+        ],
+        "properties": {
+          "get_checkmark": {
+            "type": "object",
+            "required": [
+              "address"
+            ],
+            "properties": {
+              "address": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "description": "Returns the address the checkmark ID is assigned to, if any.",
+        "type": "object",
+        "required": [
+          "get_address"
+        ],
+        "properties": {
+          "get_address": {
+            "type": "object",
+            "required": [
+              "checkmark_id"
+            ],
+            "properties": {
+              "checkmark_id": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "description": "Returns the count of checkmarks assigned.",
+        "type": "object",
+        "required": [
+          "count"
+        ],
+        "properties": {
+          "count": {
+            "type": "object",
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "description": "Returns whether the checkmark ID is banned.",
+        "type": "object",
+        "required": [
+          "checkmark_banned"
+        ],
+        "properties": {
+          "checkmark_banned": {
+            "type": "object",
+            "required": [
+              "checkmark_id"
+            ],
+            "properties": {
+              "checkmark_id": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "description": "Returns the assigner.",
+        "type": "object",
+        "required": [
+          "assigner"
+        ],
+        "properties": {
+          "assigner": {
+            "type": "object",
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "description": "Returns the admin.",
+        "type": "object",
+        "required": [
+          "admin"
+        ],
+        "properties": {
+          "admin": {
+            "type": "object",
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    ]
+  },
+  "migrate": null,
+  "sudo": null,
+  "responses": {
+    "admin": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AdminResponse",
+      "description": "Shows who can change the assigner and admin.",
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "$ref": "#/definitions/Addr"
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "Addr": {
+          "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
+          "type": "string"
+        }
+      }
+    },
+    "assigner": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AssignerResponse",
+      "description": "Shows who can assign checkmarks.",
+      "type": "object",
+      "required": [
+        "assigner"
+      ],
+      "properties": {
+        "assigner": {
+          "$ref": "#/definitions/Addr"
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "Addr": {
+          "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
+          "type": "string"
+        }
+      }
+    },
+    "checkmark_banned": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CheckmarkBannedResponse",
+      "description": "Shows whether the checkmark ID is banned.",
+      "type": "object",
+      "required": [
+        "banned"
+      ],
+      "properties": {
+        "banned": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "count": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CountResponse",
+      "description": "Shows count of checkmarks assigned.",
+      "type": "object",
+      "required": [
+        "count"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "get_address": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GetAddressResponse",
+      "description": "Shows the address the checkmark ID is assigned to, if any.",
+      "type": "object",
+      "properties": {
+        "address": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Addr"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "Addr": {
+          "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
+          "type": "string"
+        }
+      }
+    },
+    "get_checkmark": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GetCheckmarkResponse",
+      "description": "Shows the checkmark ID assigned to the address, if any.",
+      "type": "object",
+      "properties": {
+        "checkmark_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
