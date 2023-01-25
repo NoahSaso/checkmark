@@ -7,7 +7,8 @@ import { handleNonce } from './routes/nonce'
 import { respondError } from './utils'
 import { createSession } from './routes/createSession'
 import { getStatus } from './routes/getStatus'
-import { synapsWebhook } from './routes/synapsWebhook'
+import { webhook } from './routes/webhook'
+import { loadProviderMiddleware } from './providers'
 
 // Create CORS handlers.
 const { preflight, corsify } = createCors({
@@ -30,8 +31,8 @@ router.options('*', preflight)
 // Get nonce for publicKey.
 router.get('/nonce/:publicKey', handleNonce)
 
-// Synaps webhook.
-router.post('/webhook', synapsWebhook)
+// Webhook.
+router.post('/webhook', loadProviderMiddleware, webhook)
 
 //! Authenticated routes.
 // Authenticate the following routes.
@@ -40,10 +41,10 @@ router.all('*', authMiddleware)
 // Data storage routes.
 
 // Create session.
-router.post('/session', createSession)
+router.post('/create', loadProviderMiddleware, createSession)
 
 // Get status.
-router.post('/status', getStatus)
+router.post('/status', loadProviderMiddleware, getStatus)
 
 //! 404
 router.all('*', () => respondError(404, 'Not found'))

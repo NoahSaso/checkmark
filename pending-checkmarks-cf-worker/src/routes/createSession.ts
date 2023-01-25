@@ -2,7 +2,6 @@ import { secp256k1PublicKeyToBech32Address } from '../crypto'
 import { AuthorizedRequest, Env } from '../types'
 import {
   seenSessionIdKey,
-  getOnboardingDetails,
   pendingSessionForWalletAddressKey,
   respond,
   respondError,
@@ -63,11 +62,19 @@ export const createSession = async (
     )
   }
 
-  // Make sure session exists in Synaps.
-  const onboardingDetails = await getOnboardingDetails(env, sessionId)
+  // Get session state.
+  let state
+  try {
+    state = await request.provider.getSessionState(sessionId)
+  } catch (err) {
+    return respondError(
+      500,
+      err instanceof Error ? err.message : `Unknown error: ${err}`
+    )
+  }
+
   // Ensure session is pending.
-  // TODO: Maybe automatically handle verified or cancelled sessions?
-  if (onboardingDetails.session.status !== 'PENDING') {
+  if (state.status !== 'pending') {
     return respondError(400, 'Verification is not pending.')
   }
 

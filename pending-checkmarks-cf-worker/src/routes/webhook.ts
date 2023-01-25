@@ -1,51 +1,49 @@
-import { Request } from 'itty-router'
-
-import { Env, Status, VerificationStepIdentity } from '../types'
+import { Env, RequestWithProvider, Status } from '../types'
 import {
   currentSessionForInitialSessionIdKey,
-  getOnboardingDetails,
-  objectMatchesStructure,
   respond,
   respondError,
   walletForPendingSessionIdKey,
 } from '../utils'
 import { attemptToAssignCheckmark } from '../utils/checkmark'
 
-export const synapsWebhook = async (
-  request: Request,
+export const webhook = async (
+  request: RequestWithProvider,
   env: Env
 ): Promise<Response> => {
-  const secret = request.params?.secret
-  if (!secret || secret !== env.SYNAPS_WEBHOOK_SECRET) {
-    return respondError(401, 'Invalid secret.')
+  if (!(await request.provider.isWebhookAuthenticated(request))) {
+    return respondError(401, 'Webhook not authenticated.')
   }
 
-  const body = await request.json?.()
-  if (
-    !objectMatchesStructure(body, {
-      session_id: {},
-    })
-  ) {
-    return respondError(400, 'Invalid body.')
+  let pendingSessionId
+  try {
+    pendingSessionId = await request.provider.getSessionIdFromWebhook(request)
+  } catch (err) {
+    return err instanceof Error
+      ? respondError(400, err.message)
+      : respondError(500, `Unknown error: ${err}`)
   }
-
-  const { session_id: pendingSessionId } = body
 
   // Check if pending session exists in the DB. If not, do nothing.
   if (
     !(await env.SESSIONS.get(walletForPendingSessionIdKey(pendingSessionId)))
   ) {
+    return respondError(405, `Session ${pendingSessionId} not found in DB.`)
+  }
+
+  // Get session state.
+  let state
+  try {
+    state = await request.provider.getSessionState(pendingSessionId)
+  } catch (err) {
     return respondError(
-      405,
-      `Session not found in DB. Webhook data:\n${JSON.stringify(body, null, 2)}`
+      500,
+      err instanceof Error ? err.message : `Unknown error: ${err}`
     )
   }
 
-  // Get synaps session details.
-  const onboardingDetails = await getOnboardingDetails(env, pendingSessionId)
-
   // If session is still pending, do nothing.
-  if (onboardingDetails.session.status === 'PENDING') {
+  if (state.status === 'pending') {
     return respondError(412, 'Session is still pending.')
   }
 
@@ -53,29 +51,12 @@ export const synapsWebhook = async (
   // matching a previously verified session. We assign a checkmark if the
   // checkmark from the initially verified session has been deleted to allow for
   // a change of wallet.
-  else if (onboardingDetails.session.status === 'CANCELLED') {
-    // Find if verification failed only due to identity duplicate.
-    const steps = Object.values(onboardingDetails.steps)
-    const failedDueToDuplicate = steps.every(
-      (step) =>
-        (step.type === 'LIVENESS' && step.verification.state === 'VALIDATED') ||
-        (step.type === 'IDENTITY' &&
-          step.verification.duplicate &&
-          step.verification.duplicate.state === 'REJECTED' &&
-          step.verification.document &&
-          step.verification.document.state === 'VALIDATED' &&
-          step.verification.facematch &&
-          step.verification.facematch.state === 'VALIDATED')
-    )
+  else if (state.status === 'failed') {
     // If verification failed due to duplicate, check if checkmark already
     // assigned, and assign one if not.
-    if (failedDueToDuplicate) {
-      // Get initially verified session ID.
-      const initialSessionId = steps.find(
-        (step): step is VerificationStepIdentity => step.type === 'IDENTITY'
-      )?.verification.duplicate.session_id
+    if (state.failedOnlyDueToDuplicate) {
       // This should never happen, but just in case.
-      if (!initialSessionId) {
+      if (!state.initiallySuccessfulSessionId) {
         return respondError(400, 'No initially verified session ID found.')
       }
 
@@ -83,7 +64,11 @@ export const synapsWebhook = async (
       // session that successfully verified. and the latest checkmark assigned
       // for that initial session has been deleted.
       try {
-        await attemptToAssignCheckmark(env, initialSessionId, pendingSessionId)
+        await attemptToAssignCheckmark(
+          env,
+          state.initiallySuccessfulSessionId,
+          pendingSessionId
+        )
       } catch (error) {
         return error instanceof Error
           ? respondError(400, error.message)
@@ -102,7 +87,7 @@ export const synapsWebhook = async (
   }
 
   // If session verified, assign checkmark.
-  else if (onboardingDetails.session.status === 'VERIFIED') {
+  else if (state.status === 'succeeded') {
     // Ensure there exists no current session for this initial session. This
     // should never happen due to the uniqueness requirement where a session
     // will only verify successfully if no other session has been verified. If
@@ -137,9 +122,6 @@ export const synapsWebhook = async (
 
   // Session status should never be anything else.
   else {
-    return respondError(
-      412,
-      `Unexpected session status: ${onboardingDetails.session.status}`
-    )
+    return respondError(412, `Unexpected session status: ${state.status}`)
   }
 }

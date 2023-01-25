@@ -45,6 +45,7 @@ kv-namespaces = [
 
 ```toml
 [vars]
+PROVIDER_ID = "<VALUE>"
 CHECKMARK_CONTRACT_ADDRESS = "<VALUE>"
 PAYMENT_CONTRACT_ADDRESS = "<VALUE>"
 ```

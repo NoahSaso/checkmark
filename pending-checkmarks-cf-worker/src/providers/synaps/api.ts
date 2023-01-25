@@ -1,4 +1,5 @@
-import { Env, OnboardingDetails } from '../types'
+import { Env } from '../../types'
+import { OnboardingDetails } from './types'
 
 export const getOnboardingDetails = async (
   { SYNAPS_CLIENT_ID, SYNAPS_API_KEY }: Env,
