@@ -19,9 +19,13 @@ library = []
 [dependencies]
 cosmwasm-schema = "1.1.9"
 cosmwasm-std    = "1.1.9"
+cw-ownable      = "0.4.0"
 cw-utils        = "1.0.1"
 cw2             = "1.0.1"
 cw-storage-plus = "1.0.1"
 schemars        = "0.8.11"
 serde           = "1.0.152"
 thiserror       = "1.0.38"
+
+[dev-dependencies]
+cw-multi-test   = "0.16.2"

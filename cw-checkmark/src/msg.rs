@@ -1,12 +1,16 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Addr;
+use cw_ownable::{cw_ownable_execute, cw_ownable_query};
 
 #[cw_serde]
 pub struct InstantiateMsg {
-    /// The assigner is the only one who can assign checkmarks.
+    /// The owner can change the owner and assigner address.
+    pub owner: Option<String>,
+    /// The assigner can assign checkmarks.
     pub assigner: String,
 }
 
+#[cw_ownable_execute]
 #[cw_serde]
 pub enum ExecuteMsg {
     /// Assign a checmark; this can only be called by the admin or assigner.
@@ -26,16 +30,17 @@ pub enum ExecuteMsg {
     /// can call this.
     RevokeAddress { address: String },
 
-    /// Update whether a checkmark ID is banned.
-    UpdateCheckmarkBan { checkmark_id: String, ban: bool },
+    /// Update whether checkmark IDs are banned or not.
+    UpdateCheckmarkBan {
+        ban_ids: Option<Vec<String>>,
+        unban_ids: Option<Vec<String>>,
+    },
 
     /// Update assigner. Only the admin can call this.
     UpdateAssigner { assigner: String },
-
-    /// Update admin. Only the admin can call this.
-    UpdateAdmin { admin: String },
 }
 
+#[cw_ownable_query]
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {
@@ -58,10 +63,6 @@ pub enum QueryMsg {
     /// Returns the assigner.
     #[returns(AssignerResponse)]
     Assigner {},
-
-    /// Returns the admin.
-    #[returns(AdminResponse)]
-    Admin {},
 }
 
 /// Shows the checkmark ID assigned to the address, if any.
@@ -92,10 +93,4 @@ pub struct CheckmarkBannedResponse {
 #[cw_serde]
 pub struct AssignerResponse {
     pub assigner: Addr,
-}
-
-/// Shows who can change the assigner and admin.
-#[cw_serde]
-pub struct AdminResponse {
-    pub admin: Addr,
 }

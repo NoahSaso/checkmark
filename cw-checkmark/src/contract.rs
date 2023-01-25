@@ -4,45 +4,44 @@ use cosmwasm_std::{
 
 use crate::error::ContractError;
 use crate::msg::{
-    AdminResponse, AssignerResponse, CheckmarkBannedResponse, CountResponse, ExecuteMsg,
-    GetAddressResponse, GetCheckmarkResponse, InstantiateMsg, QueryMsg,
+    AssignerResponse, CheckmarkBannedResponse, CountResponse, ExecuteMsg, GetAddressResponse,
+    GetCheckmarkResponse, InstantiateMsg, QueryMsg,
 };
 use crate::state::{
-    ADDRESSES_TO_CHECKMARKS, ADMIN, ASSIGNER, BANNED_CHECKMARKS, CHECKMARKS_TO_ADDRESSES,
-    CHECKMARK_COUNT,
+    ADDRESSES_TO_CHECKMARKS, ASSIGNER, BANNED_CHECKMARKS, CHECKMARKS_TO_ADDRESSES, CHECKMARK_COUNT,
 };
 use cosmwasm_std::entry_point;
 use cw2::set_contract_version;
 
 // Version info for migration
-const CONTRACT_NAME: &str = "crates.io:cw721-checkmark";
+const CONTRACT_NAME: &str = "crates.io:cw-checkmark";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
     _env: Env,
-    info: MessageInfo,
+    _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    cw_ownable::initialize_owner(deps.storage, deps.api, msg.owner.as_deref())?;
 
     let assigner = deps.api.addr_validate(&msg.assigner)?;
     ASSIGNER.save(deps.storage, &assigner)?;
-    ADMIN.save(deps.storage, &info.sender)?;
 
     CHECKMARK_COUNT.save(deps.storage, &0)?;
 
     Ok(Response::default()
         .add_attribute("method", "instantiate")
         .add_attribute("assigner", assigner)
-        .add_attribute("admin", info.sender))
+        .add_attribute("owner", msg.owner.unwrap_or_default()))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
@@ -56,11 +55,11 @@ pub fn execute(
             execute_revoke_checkmark(deps, info, checkmark_id)
         }
         ExecuteMsg::RevokeAddress { address } => execute_revoke_address(deps, info, address),
-        ExecuteMsg::UpdateCheckmarkBan { checkmark_id, ban } => {
-            execute_update_checkmark_ban(deps, info, checkmark_id, ban)
+        ExecuteMsg::UpdateCheckmarkBan { ban_ids, unban_ids } => {
+            execute_update_checkmark_ban(deps, info, ban_ids, unban_ids)
         }
         ExecuteMsg::UpdateAssigner { assigner } => execute_update_assigner(deps, info, assigner),
-        ExecuteMsg::UpdateAdmin { admin } => execute_update_admin(deps, info, admin),
+        ExecuteMsg::UpdateOwnership(action) => execute_update_owner(deps, env, info, action),
     }
 }
 
@@ -72,29 +71,29 @@ fn execute_assign(
 ) -> Result<Response, ContractError> {
     let addr = deps.api.addr_validate(&address)?;
 
-    // Ensure the sender is the admin or the assigner.
-    let admin = ADMIN.load(deps.storage)?;
+    // Ensure the sender is the owner or the assigner.
+    let ownership_asserted = cw_ownable::assert_owner(deps.storage, &info.sender).is_ok();
     let assigner = ASSIGNER.load(deps.storage)?;
-    if info.sender != assigner && info.sender != admin {
-        return Err(ContractError::Unauthorized {});
+    if info.sender != assigner && !ownership_asserted {
+        return Err(ContractError::Unauthorized);
     }
 
     // Ensure checkmark_id is not banned.
     let banned = BANNED_CHECKMARKS.has(deps.storage, checkmark_id.clone());
     if banned {
-        return Err(ContractError::CheckmarkBanned {});
+        return Err(ContractError::CheckmarkBanned);
     }
 
     // Ensure checkmark_id is not already assigned.
     let existing_address = CHECKMARKS_TO_ADDRESSES.may_load(deps.storage, checkmark_id.clone())?;
     if existing_address.is_some() {
-        return Err(ContractError::AlreadyAssigned {});
+        return Err(ContractError::AlreadyAssigned);
     }
 
     // Ensure address does not already have a checkmark.
     let existing_checkmark = ADDRESSES_TO_CHECKMARKS.may_load(deps.storage, addr.clone())?;
     if existing_checkmark.is_some() {
-        return Err(ContractError::AlreadyHasCheckmark {});
+        return Err(ContractError::AlreadyHasCheckmark);
     }
 
     // Assign the checkmark.
@@ -112,7 +111,7 @@ fn execute_delete(deps: DepsMut, info: MessageInfo) -> Result<Response, Contract
     // Ensure address has a checkmark.
     let existing_checkmark = ADDRESSES_TO_CHECKMARKS.may_load(deps.storage, info.sender.clone())?;
     if existing_checkmark.is_none() {
-        return Err(ContractError::NoCheckmark {});
+        return Err(ContractError::NoCheckmark);
     }
 
     let checkmark_id = existing_checkmark.unwrap();
@@ -134,16 +133,12 @@ fn execute_revoke_checkmark(
     info: MessageInfo,
     checkmark_id: String,
 ) -> Result<Response, ContractError> {
-    // Ensure the sender is the admin.
-    let admin = ADMIN.load(deps.storage)?;
-    if info.sender != admin {
-        return Err(ContractError::Unauthorized {});
-    }
+    cw_ownable::assert_owner(deps.storage, &info.sender)?;
 
     // Ensure checkmark exists.
     let existing_address = CHECKMARKS_TO_ADDRESSES.may_load(deps.storage, checkmark_id.clone())?;
     if existing_address.is_none() {
-        return Err(ContractError::NoCheckmark {});
+        return Err(ContractError::NoCheckmark);
     }
 
     let addr = existing_address.unwrap();
@@ -164,18 +159,14 @@ fn execute_revoke_address(
     info: MessageInfo,
     address: String,
 ) -> Result<Response, ContractError> {
-    // Ensure the sender is the admin.
-    let admin = ADMIN.load(deps.storage)?;
-    if info.sender != admin {
-        return Err(ContractError::Unauthorized {});
-    }
+    cw_ownable::assert_owner(deps.storage, &info.sender)?;
 
     let addr = deps.api.addr_validate(&address)?;
 
     // Ensure checkmark exists.
     let existing_checkmark = ADDRESSES_TO_CHECKMARKS.may_load(deps.storage, addr.clone())?;
     if existing_checkmark.is_none() {
-        return Err(ContractError::NoCheckmark {});
+        return Err(ContractError::NoCheckmark);
     }
 
     let checkmark_id = existing_checkmark.unwrap();
@@ -194,38 +185,31 @@ fn execute_revoke_address(
 fn execute_update_checkmark_ban(
     deps: DepsMut,
     info: MessageInfo,
-    checkmark_id: String,
-    ban: bool,
+    ban_ids: Option<Vec<String>>,
+    unban_ids: Option<Vec<String>>,
 ) -> Result<Response, ContractError> {
-    // Ensure the sender is the admin.
-    let admin = ADMIN.load(deps.storage)?;
-    if info.sender != admin {
-        return Err(ContractError::Unauthorized {});
-    }
+    cw_ownable::assert_owner(deps.storage, &info.sender)?;
 
-    // If banning, remove checkmark if exists.
-    if ban {
-        let existing_address =
-            CHECKMARKS_TO_ADDRESSES.may_load(deps.storage, checkmark_id.clone())?;
+    for ban_id in ban_ids.map_or_else(Vec::new, |v| v) {
+        // If banning, remove checkmark if exists.
+        let existing_address = CHECKMARKS_TO_ADDRESSES.may_load(deps.storage, ban_id.clone())?;
         if let Some(addr) = existing_address {
             // Remove the checkmark.
-            CHECKMARKS_TO_ADDRESSES.remove(deps.storage, checkmark_id.clone());
+            CHECKMARKS_TO_ADDRESSES.remove(deps.storage, ban_id.clone());
             ADDRESSES_TO_CHECKMARKS.remove(deps.storage, addr);
             CHECKMARK_COUNT.update(deps.storage, |count| Ok::<u64, StdError>(count - 1))?;
         }
+
+        // Add to banned list.
+        BANNED_CHECKMARKS.save(deps.storage, ban_id.clone(), &Empty {})?;
     }
 
-    // Add or remove from banned list.
-    if ban {
-        BANNED_CHECKMARKS.save(deps.storage, checkmark_id.clone(), &Empty {})?;
-    } else {
-        BANNED_CHECKMARKS.remove(deps.storage, checkmark_id.clone());
+    for unban_id in unban_ids.map_or_else(Vec::new, |v| v) {
+        // Remove from banned list.
+        BANNED_CHECKMARKS.remove(deps.storage, unban_id.clone());
     }
 
-    Ok(Response::default()
-        .add_attribute("method", "update_checkmark_ban")
-        .add_attribute("checkmark_id", checkmark_id)
-        .add_attribute("ban", if ban { "true" } else { "false" }))
+    Ok(Response::default().add_attribute("method", "update_checkmark_ban"))
 }
 
 fn execute_update_assigner(
@@ -233,11 +217,7 @@ fn execute_update_assigner(
     info: MessageInfo,
     assigner: String,
 ) -> Result<Response, ContractError> {
-    // Ensure the sender is the admin.
-    let admin = ADMIN.load(deps.storage)?;
-    if info.sender != admin {
-        return Err(ContractError::Unauthorized {});
-    }
+    cw_ownable::assert_owner(deps.storage, &info.sender)?;
 
     let assigner = deps.api.addr_validate(&assigner)?;
 
@@ -249,25 +229,14 @@ fn execute_update_assigner(
         .add_attribute("assigner", assigner))
 }
 
-fn execute_update_admin(
+pub fn execute_update_owner(
     deps: DepsMut,
+    env: Env,
     info: MessageInfo,
-    admin: String,
+    action: cw_ownable::Action,
 ) -> Result<Response, ContractError> {
-    // Ensure the sender is the admin.
-    let current_admin = ADMIN.load(deps.storage)?;
-    if info.sender != current_admin {
-        return Err(ContractError::Unauthorized {});
-    }
-
-    let admin = deps.api.addr_validate(&admin)?;
-
-    // Update the admin.
-    ADMIN.save(deps.storage, &admin)?;
-
-    Ok(Response::default()
-        .add_attribute("method", "update_admin")
-        .add_attribute("admin", admin))
+    let ownership = cw_ownable::update_ownership(deps, &env.block, &info.sender, action)?;
+    Ok(Response::default().add_attributes(ownership.into_attributes()))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -296,8 +265,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::Assigner {} => to_binary(&AssignerResponse {
             assigner: ASSIGNER.load(deps.storage)?,
         }),
-        QueryMsg::Admin {} => to_binary(&AdminResponse {
-            admin: ADMIN.load(deps.storage)?,
-        }),
+
+        QueryMsg::Ownership {} => to_binary(&cw_ownable::get_ownership(deps.storage)?),
     }
 }
