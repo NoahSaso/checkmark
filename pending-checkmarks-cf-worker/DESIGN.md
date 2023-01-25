@@ -2,6 +2,44 @@
 
 Author: [@NoahSaso](https://github.com/NoahSaso)
 
+## API
+
+### Create new verification
+
+Through some interface (built with an API or using a provided iframe), collect details of person (face scan, ID document, etc.). On completion, provide a unique verification/session ID.
+
+### Verification processed webhook
+
+Verification should succeed if BOTH:
+- the submission is a valid person
+	AND
+- they have never successfully verified before
+
+Verification should fail if EITHER:
+- the submission is not a valid person
+	OR
+- they have previously successfully verified
+
+Once the verification has been processed, send a webhook containing:
+- unique ID
+- status (Accepted or Rejected)
+- if Rejected, provide reason
+	- if duplicate, provide original ID of successful verification
+
+## How we intend to use it
+
+### First time verification
+
+When a person wants to verify, they go through the verification process and are told to check back later for the results. We will setup some notification system to notify them when the results are ready. If they succeed, we store that they verified successfully and save the successful ID. If they failed, we do nothing but show them the rejection reason.
+
+### Reverification
+
+When a person wants to reverify, they go through the verification process again. **The verification should never succeed since this unique person has already successfully verified before.** When the verification fails, it should recognize their previous successful verification and provide that successful unique ID.
+
+If the verification fails due to a duplicate match, we store that they verified successfully and save the original successful ID. It is very important that every reverification attempt returns **the same original successful ID** as opposed to the duplicate failures.
+
+## Initial design exploration for Synaps
+
 ### KV Mappings
 
 Key | Value
