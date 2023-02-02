@@ -55,6 +55,7 @@ export const getStatus = async (
   if (state.status === 'pending') {
     return respond(200, {
       status: Status.Pending,
+      sessionId: pendingSessionId,
     })
   }
   // If session failed, return reasons.
