@@ -13,11 +13,11 @@ export const walletHasCheckmark = async (
   walletAddress: string
 ): Promise<boolean> => {
   const client = await getCosmWasmClient()
-  return (
+  return !!(
     await client.queryContractSmart(CHECKMARK_CONTRACT_ADDRESS, {
-      assigned: { address: walletAddress },
+      get_checkmark: { address: walletAddress },
     })
-  ).assigned
+  ).checkmark_id
 }
 
 // If a checkmark has been assigned to a wallet for this session.
@@ -26,11 +26,11 @@ export const sessionHasCheckmark = async (
   sessionId: string
 ): Promise<boolean> => {
   const client = await getCosmWasmClient()
-  return (
+  return !!(
     await client.queryContractSmart(CHECKMARK_CONTRACT_ADDRESS, {
-      assigned: { session: hashSessionId(sessionId) },
+      get_address: { checkmark_id: hashSessionId(sessionId) },
     })
-  ).assigned
+  ).address
 }
 
 // If a session has been banned from receiving checkmarks.
@@ -41,7 +41,7 @@ export const sessionIsBanned = async (
   const client = await getCosmWasmClient()
   return (
     await client.queryContractSmart(CHECKMARK_CONTRACT_ADDRESS, {
-      banned: { session: hashSessionId(sessionId) },
+      checkmark_banned: { checkmark_id: hashSessionId(sessionId) },
     })
   ).banned
 }
@@ -114,8 +114,8 @@ export const attemptToAssignCheckmark = async (
     env.CHECKMARK_CONTRACT_ADDRESS,
     {
       assign: {
-        session: hashSessionId(pendingSessionId),
-        wallet: destinationWalletAddress,
+        checkmark_id: hashSessionId(pendingSessionId),
+        address: destinationWalletAddress,
       },
     },
     'auto'
