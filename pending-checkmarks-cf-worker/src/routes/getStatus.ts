@@ -1,5 +1,5 @@
 import { secp256k1PublicKeyToBech32Address } from '../crypto'
-import { AuthorizedRequest, Env, Status } from '../types'
+import { Env, RequestWithProvider, Status } from '../types'
 import {
   pendingSessionForWalletAddressKey,
   respond,
@@ -7,11 +7,17 @@ import {
 } from '../utils'
 import { walletHasCheckmark } from '../utils/checkmark'
 
+const chainBech32Prefix = 'juno'
+
 export const getStatus = async (
-  request: AuthorizedRequest,
+  request: RequestWithProvider,
   env: Env
 ): Promise<Response> => {
-  const { publicKey, chainBech32Prefix } = request.parsedBody.data.auth
+  const publicKey = request.params?.publicKey
+  if (!publicKey) {
+    return respondError(400, 'Missing publicKey.')
+  }
+
   const walletAddress = secp256k1PublicKeyToBech32Address(
     publicKey,
     chainBech32Prefix

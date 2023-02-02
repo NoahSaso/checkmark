@@ -31,6 +31,9 @@ router.options('*', preflight)
 // Get nonce for publicKey.
 router.get('/nonce/:publicKey', handleNonce)
 
+// Get status for publicKey.
+router.get('/status/:publicKey', loadProviderMiddleware, getStatus)
+
 // Webhook.
 router.post('/webhook', loadProviderMiddleware, webhook)
 
@@ -42,9 +45,6 @@ router.all('*', authMiddleware)
 
 // Create session.
 router.post('/create', loadProviderMiddleware, createSession)
-
-// Get status.
-router.post('/status', loadProviderMiddleware, getStatus)
 
 //! 404
 router.all('*', () => respondError(404, 'Not found'))
