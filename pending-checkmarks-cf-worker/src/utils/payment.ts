@@ -25,6 +25,6 @@ export const sessionIsPaidFor = async (
     (total) =>
       PAYMENT_DENOM_TYPE in total.denom &&
       total.denom[PAYMENT_DENOM_TYPE as keyof CheckedDenom] === PAYMENT_DENOM &&
-      total.amount >= PAYMENT_AMOUNT
+      total.amount === PAYMENT_AMOUNT
   )
 }
