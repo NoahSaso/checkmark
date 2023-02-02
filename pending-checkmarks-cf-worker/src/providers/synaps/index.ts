@@ -29,11 +29,8 @@ export const Synaps: ProviderLoader = {
     getSessionState: async (sessionId: string) => {
       const onboardingDetails = await getOnboardingDetails(env, sessionId)
       switch (onboardingDetails.session.status) {
+        // Synaps sessions are still pending even when rejected.
         case 'PENDING':
-          return {
-            status: 'pending',
-          }
-
         case 'CANCELLED':
           const steps = Object.values(onboardingDetails.steps)
 
@@ -83,8 +80,27 @@ export const Synaps: ProviderLoader = {
             (step): step is VerificationStepIdentity => step.type === 'IDENTITY'
           )?.verification?.duplicate?.session_id
 
+          // Check if all steps have been validated or rejected to determine if
+          // session has failed or is still pending.
+          const noStepsPending = steps.every(
+            (step) =>
+              (step.type === 'LIVENESS' &&
+                (step.verification.state === 'VALIDATED' ||
+                  step.verification.state === 'REJECTED')) ||
+              (step.type === 'IDENTITY' &&
+                step.verification.duplicate &&
+                (step.verification.duplicate.state === 'VALIDATED' ||
+                  step.verification.duplicate.state === 'REJECTED') &&
+                step.verification.document &&
+                (step.verification.document.state === 'VALIDATED' ||
+                  step.verification.document.state === 'REJECTED') &&
+                step.verification.facematch &&
+                (step.verification.facematch.state === 'VALIDATED' ||
+                  step.verification.facematch.state === 'REJECTED'))
+          )
+
           return {
-            status: 'failed',
+            status: noStepsPending ? 'failed' : 'pending',
             reasons,
             failedOnlyDueToDuplicate,
             initiallySuccessfulSessionId,
