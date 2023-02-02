@@ -49,6 +49,7 @@ export const Synaps: ProviderLoader = {
                   step.verification.document &&
                   step.verification.document.state === 'REJECTED'
                 ) {
+                  // TODO: Verify this is safe for anyone to read, or scrub it.
                   return step.verification.document.rejection.user_reason
                 } else if (
                   step.verification.duplicate &&
