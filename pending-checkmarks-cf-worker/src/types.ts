@@ -9,6 +9,9 @@ export interface Env {
   PROVIDER_ID: string
   CHECKMARK_CONTRACT_ADDRESS: string
   PAYMENT_CONTRACT_ADDRESS: string
+  PAYMENT_AMOUNT: string
+  PAYMENT_DENOM: string
+  PAYMENT_DENOM_TYPE: string
   // Secrets.
   WALLET_MNEMONIC: string
   SYNAPS_CLIENT_ID: string

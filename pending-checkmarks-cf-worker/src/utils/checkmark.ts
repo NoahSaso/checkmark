@@ -1,3 +1,7 @@
+import {
+  CwCheckmarkClient,
+  CwCheckmarkQueryClient,
+} from '../contracts/CwCheckmark'
 import { Env } from '../types'
 import { getCosmWasmClient, getSigningCosmWasmClient } from './chain'
 import {
@@ -13,11 +17,15 @@ export const walletHasCheckmark = async (
   walletAddress: string
 ): Promise<boolean> => {
   const client = await getCosmWasmClient()
-  return !!(
-    await client.queryContractSmart(CHECKMARK_CONTRACT_ADDRESS, {
-      get_checkmark: { address: walletAddress },
-    })
-  ).checkmark_id
+
+  const { checkmark_id } = await new CwCheckmarkQueryClient(
+    client,
+    CHECKMARK_CONTRACT_ADDRESS
+  ).getCheckmark({
+    address: walletAddress,
+  })
+
+  return !!checkmark_id
 }
 
 // If a checkmark has been assigned to a wallet for this session.
@@ -26,11 +34,15 @@ export const sessionHasCheckmark = async (
   sessionId: string
 ): Promise<boolean> => {
   const client = await getCosmWasmClient()
-  return !!(
-    await client.queryContractSmart(CHECKMARK_CONTRACT_ADDRESS, {
-      get_address: { checkmark_id: hashSessionId(sessionId) },
-    })
-  ).address
+
+  const { address } = await new CwCheckmarkQueryClient(
+    client,
+    CHECKMARK_CONTRACT_ADDRESS
+  ).getAddress({
+    checkmarkId: hashSessionId(sessionId),
+  })
+
+  return !!address
 }
 
 // If a session has been banned from receiving checkmarks.
@@ -39,11 +51,15 @@ export const sessionIsBanned = async (
   sessionId: string
 ): Promise<boolean> => {
   const client = await getCosmWasmClient()
-  return (
-    await client.queryContractSmart(CHECKMARK_CONTRACT_ADDRESS, {
-      checkmark_banned: { checkmark_id: hashSessionId(sessionId) },
-    })
-  ).banned
+
+  const { banned } = await new CwCheckmarkQueryClient(
+    client,
+    CHECKMARK_CONTRACT_ADDRESS
+  ).checkmarkBanned({
+    checkmarkId: hashSessionId(sessionId),
+  })
+
+  return banned
 }
 
 // This function attempts to assign a checkmark for the pending session ID given
@@ -109,17 +125,14 @@ export const attemptToAssignCheckmark = async (
 
   // Try to assign a checkmark. It should succeed given all the checks above.
   // Use the hash of the latest session ID.
-  await client.execute(
+  await new CwCheckmarkClient(
+    client,
     walletAddress,
-    env.CHECKMARK_CONTRACT_ADDRESS,
-    {
-      assign: {
-        checkmark_id: hashSessionId(pendingSessionId),
-        address: destinationWalletAddress,
-      },
-    },
-    'auto'
-  )
+    env.CHECKMARK_CONTRACT_ADDRESS
+  ).assign({
+    checkmarkId: hashSessionId(pendingSessionId),
+    address: destinationWalletAddress,
+  })
 
   // Update the current session ID for the initial session ID to be the newly
   // assigned pending session ID.
