@@ -45,11 +45,26 @@ export const createSession = async (
     chainBech32Prefix
   )
 
-  // Ensure wallet not already waiting for a pending session.
-  if (
-    await env.SESSIONS.get(pendingSessionForWalletAddressKey(walletAddress))
-  ) {
-    return respondError(400, 'You are already waiting for verification.')
+  // Ensure wallet not already waiting for a verification to complete. If
+  // verification failed, the wallet can create a new session.
+  const pendingSessionId = await env.SESSIONS.get(
+    pendingSessionForWalletAddressKey(walletAddress)
+  )
+  if (pendingSessionId) {
+    // Get pending session state.
+    let state
+    try {
+      state = await request.provider.getSessionState(pendingSessionId)
+    } catch (err) {
+      return respondError(
+        500,
+        err instanceof Error ? err.message : `Unknown error: ${err}`
+      )
+    }
+
+    if (state.status !== 'failed') {
+      return respondError(400, 'You are already waiting for verification.')
+    }
   }
 
   // Ensure neither wallet nor session already has checkmark assigned.
