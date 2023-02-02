@@ -7,7 +7,7 @@ export const Synaps: ProviderLoader = {
   id: 'synaps',
   load: (env) => ({
     isWebhookAuthenticated: async (request) => {
-      const secret = request.params?.secret
+      const secret = request.query?.secret
       return !!secret && secret === env.SYNAPS_WEBHOOK_SECRET
     },
 
