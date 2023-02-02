@@ -44,7 +44,7 @@ export const webhook = async (
 
   // If session is still pending, do nothing.
   if (state.status === 'pending') {
-    return respondError(412, 'Session is still pending.')
+    return respondError(202, 'Session is still pending.')
   }
 
   // If session failed, check if we should assign a checkmark based on it
@@ -82,7 +82,7 @@ export const webhook = async (
     // If verification failed for any other reason, do nothing so the wallet can
     // view its failure status.
     else {
-      return respondError(412, 'Session failed for non-duplicate reason.')
+      return respondError(202, 'Session failed for non-duplicate reason.')
     }
   }
 
@@ -122,6 +122,6 @@ export const webhook = async (
 
   // Session status should never be anything else.
   else {
-    return respondError(412, `Unexpected session status: ${state.status}`)
+    return respondError(202, `Unexpected session status: ${state.status}`)
   }
 }
