@@ -29,7 +29,7 @@
     "title": "ExecuteMsg",
     "oneOf": [
       {
-        "description": "Assign a checmark; this can only be called by the admin or assigner.",
+        "description": "Assign a checmark; this can only be called by the owner or assigner.",
         "type": "object",
         "required": [
           "assign"
@@ -69,7 +69,7 @@
         "additionalProperties": false
       },
       {
-        "description": "Deletes the checkmark. Only the admin can call this.",
+        "description": "Deletes the checkmark. Only the owner can call this.",
         "type": "object",
         "required": [
           "revoke_checkmark"
@@ -91,7 +91,7 @@
         "additionalProperties": false
       },
       {
-        "description": "Deletes the checkmark assigned to the address, if any. Only the admin can call this.",
+        "description": "Deletes the checkmark assigned to the address, if any. Only the owner can call this.",
         "type": "object",
         "required": [
           "revoke_address"
@@ -147,7 +147,7 @@
         "additionalProperties": false
       },
       {
-        "description": "Update assigner. Only the admin can call this.",
+        "description": "Update assigner. Only the owner can call this.",
         "type": "object",
         "required": [
           "update_assigner"

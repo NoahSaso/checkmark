@@ -13,7 +13,7 @@ pub struct InstantiateMsg {
 #[cw_ownable_execute]
 #[cw_serde]
 pub enum ExecuteMsg {
-    /// Assign a checmark; this can only be called by the admin or assigner.
+    /// Assign a checmark; this can only be called by the owner or assigner.
     Assign {
         checkmark_id: String,
         address: String,
@@ -23,10 +23,10 @@ pub enum ExecuteMsg {
     /// checkmark assigned.
     Delete {},
 
-    /// Deletes the checkmark. Only the admin can call this.
+    /// Deletes the checkmark. Only the owner can call this.
     RevokeCheckmark { checkmark_id: String },
 
-    /// Deletes the checkmark assigned to the address, if any. Only the admin
+    /// Deletes the checkmark assigned to the address, if any. Only the owner
     /// can call this.
     RevokeAddress { address: String },
 
@@ -36,7 +36,7 @@ pub enum ExecuteMsg {
         unban_ids: Option<Vec<String>>,
     },
 
-    /// Update assigner. Only the admin can call this.
+    /// Update assigner. Only the owner can call this.
     UpdateAssigner { assigner: String },
 }
 
